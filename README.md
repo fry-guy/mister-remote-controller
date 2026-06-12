@@ -38,6 +38,7 @@ The application requires the keyboard daemon binary (`kd`) to be active on your 
 
 * Download or compile the `kd` binary.
 * Place the `kd` binary file explicitly inside the `/media/fat/linux/` directory on your MiSTer SD card.
+* To make kd launch automatically every time your MiSTer boots up, append the execution line /media/fat/linux/kd & to your system startup script located at /media/fat/linux/user-startup.sh.
 * Ensure the daemon is running and active. It listens on TCP port 8064 by default to intercept and inject the raw network inputs.
 
 ### 2. Running Locally (Development Mode)
