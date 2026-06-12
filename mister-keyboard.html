@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MiSTer Keyboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: #0a0a0a;
+  color: #c8c8c8;
+  min-height: 100vh;
+  padding: 20px;
+  user-select: none;
+}
+
+/* ── Header ── */
+.header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #333; transition: all 0.3s; flex-shrink: 0; }
+.dot.connected { background: #4caf50; box-shadow: 0 0 7px #4caf50; }
+.dot.connecting { background: #f0a500; }
+.dot.error { background: #f44; }
+.title { font-size: 17px; font-weight: 700; letter-spacing: 3px; color: #fff; text-transform: uppercase; }
+.subtitle { font-size: 10px; color: #333; margin-left: auto; letter-spacing: 1px; }
+.divider { height: 1px; background: #1a1a1a; margin-bottom: 14px; }
+
+/* ── Connection bar ── */
+.conn-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+.fl { display: flex; flex-direction: column; gap: 3px; }
+.fl label { font-size: 9px; color: #444; letter-spacing: 1px; }
+input {
+  background: #111; border: 1px solid #222; border-radius: 3px;
+  color: #c8c8c8; padding: 5px 9px; font-size: 12px; font-family: inherit;
+}
+input:disabled { opacity: 0.4; }
+input.ip { width: 145px; }
+input.pw { width: 90px; }
+input.port { width: 65px; }
+.btn {
+  padding: 6px 14px; font-size: 12px; font-family: inherit;
+  border-radius: 3px; cursor: pointer; border: 1px solid; letter-spacing: 1px;
+}
+.btn-connect { background: #112211; border-color: #224422; color: #4caf50; }
+.btn-disconnect { background: #221111; border-color: #442222; color: #f44; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Section labels ── */
+.section-label {
+  font-size: 9px; color: #333; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+
+/* ── Combo row ── */
+.combo-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.combo-btn {
+  padding: 5px 10px; font-size: 11px; font-family: inherit;
+  border-radius: 3px; cursor: pointer; border: 1px solid #1a2e1a;
+  background: #111; color: #81c784; transition: all 0.12s;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.combo-btn:hover:not(:disabled) { background: #0d1f0d; border-color: #2a5a2a; }
+.combo-btn:active:not(:disabled) { transform: scale(0.96); }
+.combo-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.combo-key { font-size: 11px; font-weight: 700; }
+.combo-desc { font-size: 8px; color: #3a5a3a; letter-spacing: 0.5px; }
+
+/* ── Keyboard Wrap Grid Matrix ── */
+.keyboard-wrap { 
+  margin-bottom: 14px; 
+  display: grid;
+  grid-template-columns: minmax(630px, 14fr) minmax(130px, 3fr) minmax(175px, 4fr);
+  gap: 16px;
+  align-items: start;
+}
+.kb-main, .kb-nav, .kb-numpad { display: flex; flex-direction: column; gap: 4px; }
+.kb-nav { padding-top: 44px; }
+.kb-numpad { padding-top: 44px; }
+.kb-row { display: flex; gap: 4px; width: 100%; }
+
+.key {
+  height: 40px;
+  min-width: 38px;
+  flex: 1;
+  padding: 0 4px;
+  background: #222;
+  border: 1px solid #333;
+  border-bottom: 3px solid #2a2a2a;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 11px; color: #ddd;
+  transition: all 0.08s;
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.key:hover:not(.dead) { background: #2c2c2c; border-color: #444; color: #fff; }
+.key:active:not(.dead), .key.pressed {
+  background: #0d1f0d;
+  border-color: #2a5a2a;
+  border-bottom-width: 1px;
+  color: #81c784;
+  transform: translateY(2px);
+}
+.key.mod-active { background: #0d1f33; border-color: #1e4d7a; color: #64b5f6; }
+.key.dead { cursor: default; background: #0d0d0d; border-color: #161616; color: #222; border-bottom-width: 1px; }
+.key .top { font-size: 9px; color: #999; line-height: 1; }
+.key .bottom { font-size: 11px; line-height: 1; }
+.key .single { font-size: 11px; }
+.key .label { font-size: 9px; letter-spacing: 0.5px; }
+
+/* Dynamic proportions */
+.w15 { flex-grow: 1.5; min-width: 55px; }
+.w175 { flex-grow: 1.75; min-width: 66px; }
+.w2 { flex-grow: 2; min-width: 79px; }
+.w225 { flex-grow: 2.25; min-width: 88px; }
+.w275 { flex-grow: 2.75; min-width: 107px; }
+.w625 { flex-grow: 6.25; min-width: 242px; }
+.w7 { flex-grow: 7; min-width: 271px; }
+
+/* ── Mouse joystick pad ── */
+.mouse-section { margin-bottom: 14px; }
+.mouse-controls-row { display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; }
+.mouse-pad {
+  background: #0d0d0d;
+  border: 1px solid #222;
+  border-radius: 4px;
+  height: 150px;
+  flex: 1;
+  min-width: 220px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: grab;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+  touch-action: none;
+  overflow: hidden;
+}
+.mouse-pad.active {
+  background: #0a150a;
+  border-color: #1a3a1a;
+  cursor: grabbing;
+}
+.mouse-pad.disabled { opacity: 0.3; cursor: not-allowed; }
+.mouse-pad-label { font-size: 12px; color: #555; letter-spacing: 1px; margin-bottom: 6px; pointer-events: none; }
+.mouse-pad-hint { font-size: 10px; color: #333; pointer-events: none; }
+.mouse-pad.active .mouse-pad-label { color: #4caf50; }
+.mouse-pad.active .mouse-pad-hint { color: #2a5a2a; }
+.mouse-stick {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #2a5a2a;
+  border: 1px solid #4caf50;
+  pointer-events: none;
+  display: none;
+}
+.mouse-pad.active .mouse-stick { block; }
+.mouse-side { display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
+.mouse-btns { display: flex; gap: 6px; }
+.mbtn {
+  flex: 1; padding: 10px 0; font-size: 11px; font-family: inherit;
+  border-radius: 3px; cursor: pointer; border: 1px solid #333;
+  background: #1c1c1c; color: #aaa; letter-spacing: 1px; text-align: center;
+  transition: all 0.08s;
+}
+.mbtn:active, .mbtn.pressed { background: #0a1f0a; border-color: #2a5a2a; color: #81c784; }
+.mbtn:disabled { opacity: 0.25; cursor: not-allowed; }
+.scroll-row { display: flex; gap: 6px; }
+.sensitivity-block {
+  display: flex; flex-direction: column; gap: 4px; font-size: 9px;
+  color: #777; letter-spacing: 1px; margin-top: auto;
+}
+.sensitivity-block input[type=range] { width: 100%; accent-color: #4caf50; }
+
+/* Game Controller Layout */
+.gamepad-section { margin-bottom: 14px; }
+.gamepad-mode-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.mode-btn {
+  padding: 5px 12px; font-size: 10px; font-family: inherit;
+  border-radius: 3px; cursor: pointer; border: 1px solid #333;
+  background: #1c1c1c; color: #888; letter-spacing: 1px;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: #0d1f33; border-color: #1e4d7a; color: #64b5f6; }
+.mode-btn:hover:not(.active) { background: #222; color: #ccc; }
+.gamepad-chassis { 
+  background: #141414; 
+  border: 1px solid #222; 
+  border-radius: 20px; 
+  padding: 24px 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 120px;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Unified D-Pad Cross */
+.dpad-container { display: flex; justify-content: center; }
+.dpad-cross { 
+  display: grid; 
+  grid-template-columns: 42px 42px 42px; 
+  grid-template-rows: 42px 42px 42px; 
+  gap: 0px;
+}
+.dpad-cross .key { min-width: 42px; height: 42px; border-radius: 2px; }
+.dpad-cross .d-up { border-radius: 6px 6px 2px 2px; border-bottom: 1px solid #333; }
+.dpad-cross .d-left { border-radius: 6px 2px 2px 6px; border-right: 1px solid #333; }
+.dpad-cross .d-right { border-radius: 2px 6px 6px 2px; border-left: 1px solid #333; }
+.dpad-cross .d-down { border-radius: 2px 2px 6px 6px; border-top: 1px solid #333; }
+.dpad-cross .d-center { background: #1a1a1a; border: 1px solid #222; cursor: default; }
+
+/* System Controls (Center) */
+.center-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.controller-shoulders { display: flex; gap: 12px; width: 100%; justify-content: center; }
+.controller-shoulders .key { min-width: 80px; height: 34px; border-radius: 6px; }
+.controller-menu-btns { display: flex; gap: 16px; margin-top: 10px; }
+.controller-menu-btns .key { 
+  min-width: 75px; height: 28px; border-radius: 14px; 
+  font-size: 8px; font-weight: bold;
+}
+
+/* Classic Angled Action Buttons */
+.action-container { display: flex; justify-content: center; }
+.action-diamond { 
+  display: grid; 
+  grid-template-columns: 46px 46px; 
+  grid-template-rows: 46px 46px; 
+  gap: 12px;
+  transform: rotate(-15deg);
+}
+.action-diamond .key { 
+  min-width: 46px; height: 46px; 
+  border-radius: 50%; 
+  font-weight: bold;
+  transform: rotate(15deg);
+}
+
+/* Arcade Controls Panel Deck */
+.arcade-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border-left: 1px solid #222;
+  padding-left: 16px;
+  height: 100%;
+  justify-content: center;
+}
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.spinner-wheel {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #222;
+  border: 2px solid #f0a500;
+  position: relative;
+  cursor: ew-resize;
+  box-shadow: 0 0 8px rgba(240, 165, 0, 0.15);
+  touch-action: none;
+}
+.spinner-notch {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f0a500;
+  top: 8px;
+  left: calc(50% - 3px);
+}
+.mode-btn.turbo-on {
+  background: #331f0d;
+  border-color: #7a4d1e;
+  color: #ff9800;
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.2);
+}
+
+/* Log */
+.log-wrap { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 3px; overflow: hidden; }
+.log-hdr { padding: 5px 12px; border-bottom: 1px solid #141414; font-size: 9px; color: #333; letter-spacing: 2px; }
+.log-body { height: 80px; overflow-y: auto; padding: 4px 12px; }
+.log-body::-webkit-scrollbar { width: 3px; }
+.log-body::-webkit-scrollbar-thumb { background: #222; }
+.le { font-size: 11px; line-height: 18px; }
+.li { color: #333; } .ls { color: #4caf50; } .lerr { color: #f44; }
+.lw { color: #f0a500; } .lk { color: #81c784; } .lm { color: #64b5f6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="dot" id="dot"></div>
+  <span class="title">MiSTer Keyboard</span>
+  <span class="subtitle">kd · uinput</span>
+</div>
+<div class="divider"></div>
+
+<div class="conn-bar">
+  <div class="fl"><label>MISTER IP</label><input class="ip" id="ip" value="192.168.4.39"></div>
+  <div class="fl"><label>PASSWORD</label><input class="pw" id="pw" value="1" type="password"></div>
+  <div class="fl"><label>WS PORT</label><input class="port" id="wsport" value="4568"></div>
+  <button class="btn btn-connect" id="connBtn" onclick="toggleConnect()">Connect</button>
+</div>
+
+<div class="section-label">SHORTCUTS</div>
+<div class="combo-row">
+  <button class="combo-btn" id="cb-0" disabled onclick="sendCombo('{1d:01}1d')"><span class="combo-key">Ctrl+Esc</span><span class="combo-desc">Start Menu</span></button>
+  <button class="combo-btn" id="cb-1" disabled onclick="sendCombo('{1d{38:6f}38}1d')"><span class="combo-key">Ctrl+Alt+Del</span><span class="combo-desc">Task Manager</span></button>
+  <button class="combo-btn" id="cb-2" disabled onclick="sendCombo('{38:3e}38')"><span class="combo-key">Alt+F4</span><span class="combo-desc">Close Window</span></button>
+  <button class="combo-btn" id="cb-3" disabled onclick="sendCombo('{38:0f}38')"><span class="combo-key">Alt+Tab</span><span class="combo-desc">Switch Window</span></button>
+  <button class="combo-btn" id="cb-4" disabled onclick="sendCombo('{1dc}1d')"><span class="combo-key">Ctrl+C</span><span class="combo-desc">Copy</span></button>
+  <button class="combo-btn" id="cb-5" disabled onclick="sendCombo('{1dv}1d')"><span class="combo-key">Ctrl+V</span><span class="combo-desc">Paste</span></button>
+  <button class="combo-btn" id="cb-6" disabled onclick="sendCombo('{1dx}1d')"><span class="combo-key">Ctrl+X</span><span class="combo-desc">Cut</span></button>
+  <button class="combo-btn" id="cb-7" disabled onclick="sendCombo('{1dz}1d')"><span class="combo-key">Ctrl+Z</span><span class="combo-desc">Undo</span></button>
+  <button class="combo-btn" id="cb-8" disabled onclick="sendCombo('{1da}1d')"><span class="combo-key">Ctrl+A</span><span class="combo-desc">Select All</span></button>
+  <button class="combo-btn" id="cb-9" disabled onclick="sendCombo('{1ds}1d')"><span class="combo-key">Ctrl+S</span><span class="combo-desc">Save</span></button>
+  <button class="combo-btn" id="cb-10" disabled onclick="sendCombo('{db:58}db')"><span class="combo-key">Win+F12</span><span class="combo-desc">MiSTer OSD</span></button>
+</div>
+
+<div class="section-label">MOUSE — click and drag like a joystick; further from center = faster</div>
+<div class="mouse-section">
+  <div class="mouse-controls-row">
+    <div class="mouse-pad" id="mousePad">
+      <div class="mouse-pad-label" id="mouseLabel">Click and drag here</div>
+      <div class="mouse-pad-hint" id="mouseHint">Cursor stays put — only the offset matters</div>
+      <div class="mouse-stick" id="mouseStick"></div>
+    </div>
+    <div class="mouse-side">
+      <div class="mouse-btns">
+        <button class="mbtn" id="mb-left"   disabled onmousedown="mouseBtn(0,'d',this)" onmouseup="mouseBtn(0,'u',this)" onmouseleave="mouseBtnRelease(0,this)">LEFT</button>
+        <button class="mbtn" id="mb-middle" disabled onmousedown="mouseBtn(2,'d',this)" onmouseup="mouseBtn(2,'u',this)" onmouseleave="mouseBtnRelease(2,this)">MID</button>
+        <button class="mbtn" id="mb-right"  disabled onmousedown="mouseBtn(1,'d',this)" onmouseup="mouseBtn(1,'u',this)" onmouseleave="mouseBtnRelease(1,this)">RIGHT</button>
+      </div>
+      <div class="scroll-row">
+        <button class="mbtn" id="mb-scrollup" disabled onclick="mouseScroll(-1)">SCROLL ▲</button>
+        <button class="mbtn" id="mb-scrolldown" disabled onclick="mouseScroll(1)">SCROLL ▼</button>
+      </div>
+      <div class="sensitivity-block">
+        <span>SENSITIVITY</span>
+        <input type="range" id="sensSlider" min="1" max="40" value="12">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">KEYBOARD — or type with physical keys while app is focused</div>
+<div class="keyboard-wrap" id="keyboard">
+
+  <div class="kb-main">
+    <div class="kb-row">
+      <div class="key" data-seq=":01" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">ESC</span></div>
+      <div class="key dead"></div>
+      <div class="key" data-seq=":3b" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F1</span></div>
+      <div class="key" data-seq=":3c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F2</span></div>
+      <div class="key" data-seq=":3d" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F3</span></div>
+      <div class="key" data-seq=":3e" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F4</span></div>
+      <div class="key dead"></div>
+      <div class="key" data-seq=":3f" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F5</span></div>
+      <div class="key" data-seq=":40" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F6</span></div>
+      <div class="key" data-seq=":41" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F7</span></div>
+      <div class="key" data-seq=":42" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F8</span></div>
+      <div class="key dead"></div>
+      <div class="key" data-seq=":43" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F9</span></div>
+      <div class="key" data-seq=":44" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F10</span></div>
+      <div class="key" data-seq=":57" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F11</span></div>
+      <div class="key" data-seq=":58" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">F12</span></div>
+    </div>
+
+    <div class="kb-row">
+      <div class="key" data-seq=":29" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">~</span><span class="bottom">`</span></div>
+      <div class="key" data-seq="1" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">!</span><span class="bottom">1</span></div>
+      <div class="key" data-seq="2" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">@</span><span class="bottom">2</span></div>
+      <div class="key" data-seq="3" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">#</span><span class="bottom">3</span></div>
+      <div class="key" data-seq="4" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">$</span><span class="bottom">4</span></div>
+      <div class="key" data-seq="5" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">%</span><span class="bottom">5</span></div>
+      <div class="key" data-seq="6" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">^</span><span class="bottom">6</span></div>
+      <div class="key" data-seq="7" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">&amp;</span><span class="bottom">7</span></div>
+      <div class="key" data-seq="8" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">*</span><span class="bottom">8</span></div>
+      <div class="key" data-seq="9" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">(</span><span class="bottom">9</span></div>
+      <div class="key" data-seq="0" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">)</span><span class="bottom">0</span></div>
+      <div class="key" data-seq=":0c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">_</span><span class="bottom">-</span></div>
+      <div class="key" data-seq=":0d" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">+</span><span class="bottom">=</span></div>
+      <div class="key w225" data-seq=":0e" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">BACKSPACE</span></div>
+    </div>
+
+    <div class="kb-row">
+      <div class="key w15" data-seq=":0f" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">TAB</span></div>
+      <div class="key" data-seq="q" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">Q</span></div>
+      <div class="key" data-seq="w" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">W</span></div>
+      <div class="key" data-seq="e" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">E</span></div>
+      <div class="key" data-seq="r" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">R</span></div>
+      <div class="key" data-seq="t" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">T</span></div>
+      <div class="key" data-seq="y" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">Y</span></div>
+      <div class="key" data-seq="u" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">U</span></div>
+      <div class="key" data-seq="i" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">I</span></div>
+      <div class="key" data-seq="o" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">O</span></div>
+      <div class="key" data-seq="p" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">P</span></div>
+      <div class="key" data-seq=":1a" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">{</span><span class="bottom">[</span></div>
+      <div class="key" data-seq=":1b" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">}</span><span class="bottom">]</span></div>
+      <div class="key w175" data-seq=":2b" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">|</span><span class="bottom">\</span></div>
+    </div>
+
+    <div class="kb-row">
+      <div class="key w175" data-mod-code="3a" id="kb-caps" onclick="fireModKey(this,'3a')"><span class="label">CAPS</span></div>
+      <div class="key" data-seq="a" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">A</span></div>
+      <div class="key" data-seq="s" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">S</span></div>
+      <div class="key" data-seq="d" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">D</span></div>
+      <div class="key" data-seq="f" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">F</span></div>
+      <div class="key" data-seq="g" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">G</span></div>
+      <div class="key" data-seq="h" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">H</span></div>
+      <div class="key" data-seq="j" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">J</span></div>
+      <div class="key" data-seq="k" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">K</span></div>
+      <div class="key" data-seq="l" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">L</span></div>
+      <div class="key" data-seq=":27" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">:</span><span class="bottom">;</span></div>
+      <div class="key" data-seq=":28" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">"</span><span class="bottom">'</span></div>
+      <div class="key w2" data-seq=":1c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">ENTER</span></div>
+    </div>
+
+    <div class="kb-row">
+      <div class="key w225" data-mod-code="2a" id="kb-lshift" onclick="fireModKey(this,'2a')"><span class="label">SHIFT</span></div>
+      <div class="key" data-seq="z" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">Z</span></div>
+      <div class="key" data-seq="x" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">X</span></div>
+      <div class="key" data-seq="c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">C</span></div>
+      <div class="key" data-seq="v" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">V</span></div>
+      <div class="key" data-seq="b" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">B</span></div>
+      <div class="key" data-seq="n" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">N</span></div>
+      <div class="key" data-seq="m" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">M</span></div>
+      <div class="key" data-seq=":33" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">&lt;</span><span class="bottom">,</span></div>
+      <div class="key" data-seq=":34" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">&gt;</span><span class="bottom">.</span></div>
+      <div class="key" data-seq=":35" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="top">?</span><span class="bottom">/</span></div>
+      <div class="key w275" data-mod-code="36" id="kb-rshift" onclick="fireModKey(this,'36')"><span class="label">SHIFT</span></div>
+    </div>
+
+    <div class="kb-row">
+      <div class="key w15" data-mod-code="1d" id="kb-lctrl" onclick="fireModKey(this,'1d')"><span class="label">CTRL</span></div>
+      <div class="key w15" data-mod-code="db" id="kb-win" onclick="fireModKey(this,'db')"><span class="label">WIN</span></div>
+      <div class="key w15" data-mod-code="38" id="kb-lalt" onclick="fireModKey(this,'38')"><span class="label">ALT</span></div>
+      <div class="key w625" data-seq=":39" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">SPACE</span></div>
+      <div class="key w15" data-mod-code="64" id="kb-ralt" onclick="fireModKey(this,'64')"><span class="label">ALT</span></div>
+      <div class="key w15" data-mod-code="61" id="kb-rctrl" onclick="fireModKey(this,'61')"><span class="label">CTRL</span></div>
+    </div>
+  </div>
+
+  <div class="kb-nav">
+    <div class="kb-row">
+      <div class="key" data-seq=":6e" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">INS</span></div>
+      <div class="key" data-seq=":6f" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">DEL</span></div>
+    </div>
+    <div class="kb-row">
+      <div class="key" data-seq=":68" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">PGUP</span></div>
+      <div class="key" data-seq=":6d" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">PGDN</span></div>
+    </div>
+    <div class="kb-row">
+      <div class="key dead"></div>
+      <div class="key" data-seq=":67" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">▲</span></div>
+      <div class="key dead"></div>
+    </div>
+    <div class="kb-row">
+      <div class="key" data-seq=":69" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">◀</span></div>
+      <div class="key" data-seq=":6c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">▼</span></div>
+      <div class="key" data-seq=":6a" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">▶</span></div>
+    </div>
+  </div>
+
+  <div class="kb-numpad">
+    <div class="kb-row">
+      <div class="key" data-mod-code="45" onclick="fireModKey(this,'45')"><span class="label">NUM</span></div>
+      <div class="key" data-seq=":62" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">/</span></div>
+      <div class="key" data-seq=":37" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">*</span></div>
+      <div class="key" data-seq=":4a" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">-</span></div>
+    </div>
+    <div class="kb-row">
+      <div class="key" data-seq=":47" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">7</span></div>
+      <div class="key" data-seq=":48" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">8</span></div>
+      <div class="key" data-seq=":49" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">9</span></div>
+      <div class="key" data-seq=":4e" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">+</span></div>
+    </div>
+    <div class="kb-row">
+      <div class="key" data-seq=":4b" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">4</span></div>
+      <div class="key" data-seq=":4c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">5</span></div>
+      <div class="key" data-seq=":4d" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">6</span></div>
+      <div class="key dead"></div>
+    </div>
+    <div class="kb-row">
+      <div class="key" data-seq=":4f" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">1</span></div>
+      <div class="key" data-seq=":50" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">2</span></div>
+      <div class="key" data-seq=":51" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">3</span></div>
+      <div class="key" data-seq=":60" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">ENT</span></div>
+    </div>
+    <div class="kb-row">
+      <div class="key w2" data-seq=":52" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">0</span></div>
+      <div class="key" data-seq=":53" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="single">.</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-label">GAME CONTROLLER</div>
+<div class="gamepad-section">
+  <div class="gamepad-mode-row">
+    <button class="mode-btn active" id="gp-mode-pc" onclick="setGamepadMode('pc')">PC / DOS</button>
+    <button class="mode-btn" id="gp-mode-console" onclick="setGamepadMode('console')">CONSOLE (RetroPad)</button>
+  </div>
+  <div class="gamepad-chassis">
+    
+    <div class="dpad-container">
+      <div class="dpad-cross">
+        <div class="key empty"></div>
+        <div class="key d-up gp-up" data-seq=":67" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">▲</span></div>
+        <div class="key empty"></div>
+        <div class="key d-left gp-left" data-seq=":69" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">◀</span></div>
+        <div class="key d-center"></div>
+        <div class="key d-right gp-right" data-seq=":6a" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">▶</span></div>
+        <div class="key empty"></div>
+        <div class="key d-down gp-down" data-seq=":6c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">▼</span></div>
+        <div class="key empty"></div>
+      </div>
+    </div>
+
+    <div class="center-controls">
+      <div class="controller-shoulders">
+        <div class="key gp-l" data-seq=":1d" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">L</span></div>
+        <div class="key gp-r" data-seq=":38" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">R</span></div>
+      </div>
+      <div class="controller-menu-btns">
+        <div class="key gp-select" data-seq=":01" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">SELECT</span></div>
+        <div class="key gp-start" data-mod-code="db" onclick="fireModKey(this,'db')"><span class="label">START</span></div>
+      </div>
+    </div>
+
+    <div class="action-container">
+      <div class="action-diamond">
+        <div class="key gp-y" data-seq="i" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">Y</span></div>
+        <div class="key gp-x" data-seq=":1c" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">X</span></div>
+        <div class="key gp-b" data-seq=":39" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">B</span></div>
+        <div class="key gp-a" data-seq="k" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)"><span class="label">A</span></div>
+      </div>
+    </div>
+
+    <div class="arcade-container" id="arcadeDeck">
+      <div class="spinner-container">
+        <div class="spinner-wheel" id="spinnerWheel">
+          <div class="spinner-notch"></div>
+        </div>
+        <span style="font-size: 8px; color: #666; letter-spacing: 1px; font-weight: bold; text-transform: uppercase;">Spinner</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+        <button class="mode-btn" id="gp-turbo-btn" onclick="toggleTurboMode()" style="width: 100%; text-align: center; font-size: 8px; font-weight: bold;">TURBO: OFF</button>
+        <div class="key gp-coin" data-seq="5" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)" style="min-width: unset; height: 30px; border-radius: 6px; border-color: #422; color: #ff6b6b;"><span class="label">COIN</span></div>
+        <div class="key gp-service" data-seq="7" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)" style="min-width: unset; height: 30px; border-radius: 6px; border-color: #224; color: #6b8bff;"><span class="label">SERVICE</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="log-wrap">
+  <div class="log-hdr">EVENT LOG</div>
+  <div class="log-body" id="log"><div class="le li">No events yet</div></div>
+</div>
+
+<script>
+const screenMods = {};
+const MOD_MAP = { ctrl:'1d', shift:'2a', alt:'38', win:'db' };
+
+const COMBOBTNS = ['cb-0','cb-1','cb-2','cb-3','cb-4','cb-5','cb-6','cb-7','cb-8','cb-9','cb-10'];
+const MOUSE_BTNS = ['mb-left','mb-middle','mb-right','mb-scrollup','mb-scrolldown'];
+
+const PHYS = {
+  KeyA:'a',KeyB:'b',KeyC:'c',KeyD:'d',KeyE:'e',KeyF:'f',KeyG:'g',KeyH:'h',
+  KeyI:'i',KeyJ:'j',KeyK:'k',KeyL:'l',KeyM:'m',KeyN:'n',KeyO:'o',KeyP:'p',
+  KeyQ:'q',KeyR:'r',KeyS:'s',KeyT:'t',KeyU:'u',KeyV:'v',KeyW:'w',KeyX:'x',
+  KeyY:'y',KeyZ:'z',
+  Digit1:'1',Digit2:'2',Digit3:'3',Digit4:'4',Digit5:'5',
+  Digit6:'6',Digit7:'7',Digit8:'8',Digit9:'9',Digit0:'0',
+  Escape:':01',Backspace:':0e',Tab:':0f',Enter:':1c',Space:':39',
+  CapsLock:':3a',
+  F1:':3b',F2:':3c',F3:':3d',F4:':3e',F5:':3f',
+  F6:':40',F7:':41',F8:':42',F9:':43',F10:':44',F11:':57',F12:':58',
+  ArrowUp:':67',ArrowLeft:':69',ArrowRight:':6a',ArrowDown:':6c',
+  PageUp:':68',PageDown:':6d',Insert:':6e',Delete:':6f',
+  Minus:':0c',Equal:':0d',BracketLeft:':1a',BracketRight:':1b',
+  Backslash:':2b',Semicolon:':27',Quote:':28',Comma:':33',Period:':34',Slash:':35',
+  Backquote:':29',
+  ShiftLeft:'2a',ShiftRight:'36',ControlLeft:'1d',ControlRight:'61',
+  AltLeft:'38',AltRight:'64',
+};
+const PHYS_MODS = new Set(['ShiftLeft','ShiftRight','ControlLeft','ControlRight','AltLeft','AltRight']);
+
+// Track active repetition state loops
+const heldKeys = new Set();
+const physicalIntervals = new Map();
+let currentScreenHoldEl = null;
+let screenHoldInterval = null;
+
+let ws=null, connected=false;
+let turboActive = false;
+
+const GAMEPAD_PROFILES = {
+  pc: {
+    label: 'PC / DOS',
+    up:     { seq: ':67', label: '▲' },
+    down:   { seq: ':6c', label: '▼' },
+    left:   { seq: ':69', label: '◀' },
+    right:  { seq: ':6a', label: '▶' },
+    l:      { seq: ':1d', label: 'L<br><span class="combo-desc">Ctrl</span>' },
+    r:      { seq: ':38', label: 'R<br><span class="combo-desc">Alt</span>' },
+    select: { seq: ':01', label: 'SELECT<br><span class="combo-desc">Esc</span>' },
+    start:  { mod: 'db',  label: 'START<br><span class="combo-desc">Win</span>' },
+    x:      { seq: ':1c', label: 'X<br><span class="combo-desc">Enter</span>' },
+    y:      { seq: ':1c', label: 'Y<br><span class="combo-desc">Enter</span>' },
+    a:      { seq: ':39', label: 'A<br><span class="combo-desc">Space</span>' },
+    b:      { seq: ':39', label: 'B<br><span class="combo-desc">Space</span>' },
+    coin:   { seq: '5',   label: 'COIN<br><span class="combo-desc">5</span>' },
+    service:{ seq: '7',   label: 'SERVICE<br><span class="combo-desc">7</span>' }
+  },
+  console: {
+    label: 'Console (RetroPad)',
+    up:     { seq: 'w',   label: '▲<br><span class="combo-desc">W</span>' },
+    down:   { seq: 's',   label: '▼<br><span class="combo-desc">S</span>' },
+    left:   { seq: 'a',   label: '◀<br><span class="combo-desc">A</span>' },
+    right:  { seq: 'd',   label: '▶<br><span class="combo-desc">D</span>' },
+    l:      { seq: 'j',   label: 'L<br><span class="combo-desc">J</span>' },
+    r:      { seq: 'p',   label: 'R<br><span class="combo-desc">P</span>' },
+    select: { seq: 'g',   label: 'SELECT<br><span class="combo-desc">G</span>' },
+    start:  { seq: 'h',   label: 'START<br><span class="combo-desc">H</span>' },
+    x:      { seq: 'i',   label: 'X<br><span class="combo-desc">I</span>' },
+    y:      { seq: 'o',   label: 'Y<br><span class="combo-desc">O</span>' },
+    a:      { seq: 'k',   label: 'A<br><span class="combo-desc">K</span>' },
+    b:      { seq: 'l',   label: 'B<br><span class="combo-desc">L</span>' },
+    coin:   { seq: '9',   label: 'COIN<br><span class="combo-desc">9</span>' },
+    service:{ seq: '0',   label: 'SERVICE<br><span class="combo-desc">0</span>' }
+  },
+};
+let gamepadMode = 'pc';
+
+function setGamepadMode(mode){
+  gamepadMode = mode;
+  document.getElementById('gp-mode-pc').classList.toggle('active', mode==='pc');
+  document.getElementById('gp-mode-console').classList.toggle('active', mode==='console');
+
+  const p = GAMEPAD_PROFILES[mode];
+  applyGamepadButton('.gp-up', p.up);
+  applyGamepadButton('.gp-down', p.down);
+  applyGamepadButton('.gp-left', p.left);
+  applyGamepadButton('.gp-right', p.right);
+  applyGamepadButton('.gp-l', p.l);
+  applyGamepadButton('.gp-r', p.r);
+  applyGamepadButton('.gp-select', p.select);
+  applyGamepadButton('.gp-start', p.start);
+  applyGamepadButton('.gp-x', p.x);
+  applyGamepadButton('.gp-y', p.y);
+  applyGamepadButton('.gp-a', p.a);
+  applyGamepadButton('.gp-b', p.b);
+  applyGamepadButton('.gp-coin', p.coin);
+  applyGamepadButton('.gp-service', p.service);
+  log(`Gamepad mode: ${p.label}`,'li');
+}
+
+function applyGamepadButton(selector, cfg){
+  const el = document.querySelector(selector);
+  if(!el || !cfg) return;
+  el.innerHTML = `<span class="label">${cfg.label}</span>`;
+  if(cfg.mod){
+    el.dataset.modCode = cfg.mod;
+    delete el.dataset.seq;
+    el.removeAttribute('onmousedown');
+    el.removeAttribute('onmouseup');
+    el.removeAttribute('onmouseleave');
+    el.setAttribute('onclick','fireModKey(this, "'+cfg.mod+'")');
+  } else {
+    el.dataset.seq = cfg.seq;
+    delete el.dataset.modCode;
+    el.removeAttribute('onclick');
+    el.setAttribute('onmousedown','fireScreenKeyHold(event, this)');
+    el.setAttribute('onmouseup','fireScreenKeyRelease(this)');
+    el.setAttribute('onmouseleave','fireScreenKeyRelease(this)');
+  }
+}
+
+function log(msg,cls){
+  const b=document.getElementById('log');
+  const first=b.querySelector('.li');
+  if(first&&first.textContent==='No events yet')first.remove();
+  const d=document.createElement('div');
+  d.className='le '+cls; d.textContent=msg; b.appendChild(d);
+  while(b.children.length>80)b.removeChild(b.firstChild);
+  b.scrollTop=b.scrollHeight;
+}
+function setDot(s){ document.getElementById('dot').className='dot'+(s?' '+s:''); }
+
+function setEnabled(on){
+  [...COMBOBTNS,...MOUSE_BTNS].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.disabled=!on;
+  });
+  document.querySelectorAll('.key:not(.dead):not(.d-center)').forEach(el=>el.style.opacity=on?'':'0.3');
+  const pad=document.getElementById('mousePad');
+  if(on) pad.classList.remove('disabled'); else pad.classList.add('disabled');
+  document.getElementById('mouseLabel').textContent = on ? 'Click and drag here' : 'Connect first to enable mouse';
+  
+  const spinner = document.getElementById('spinnerWheel');
+  if(on) spinner.style.opacity = ''; else spinner.style.opacity = '0.3';
+}
+
+function toggleConnect(){ if(connected) doDisconnect(); else doConnect(); }
+
+function doConnect(){
+  const ip=document.getElementById('ip').value;
+  const pw=document.getElementById('pw').value;
+  const wsp=document.getElementById('wsport').value;
+  setDot('connecting');
+  ws=new WebSocket(`ws://localhost:${wsp}`);
+  ws.onopen=()=>ws.send(JSON.stringify({type:'connect',host:ip,password:pw}));
+  ws.onmessage=(e)=>{
+    const d=JSON.parse(e.data);
+    if(d.type==='status'){
+      if(d.ok){
+        connected=true; setDot('connected');
+        document.getElementById('connBtn').textContent='Disconnect';
+        document.getElementById('connBtn').className='btn btn-disconnect';
+        ['ip','pw','wsport'].forEach(id=>document.getElementById(id).disabled=true);
+        setEnabled(true);
+        log(d.msg,'ls');
+      } else { log(d.msg,'lerr'); setDot('error'); }
+    }
+  };
+  ws.onerror=()=>{ log('Proxy not running — start ws-to-tcp.py first','lerr'); setDot('error'); };
+  ws.onclose=()=>{
+    connected=false; setDot('');
+    document.getElementById('connBtn').textContent='Connect';
+    document.getElementById('connBtn').className='btn btn-connect';
+    ['ip','pw','wsport'].forEach(id=>document.getElementById(id).disabled=false);
+    setEnabled(false);
+    clearAllMods();
+    stopDrag();
+    stopSpinner();
+    heldKeys.clear();
+    physicalIntervals.forEach(clearInterval);
+    physicalIntervals.clear();
+    if(screenHoldInterval) clearInterval(screenHoldInterval);
+    currentScreenHoldEl = null;
+  };
+}
+function doDisconnect(){ if(ws)ws.close(); log('Disconnected','li'); }
+
+function sendRaw(seq){
+  if(ws&&ws.readyState===WebSocket.OPEN)
+    ws.send(JSON.stringify({type:'key',seq}));
+}
+function sendMouseMove(dx,dy){
+  if(ws&&ws.readyState===WebSocket.OPEN)
+    ws.send(JSON.stringify({type:'mouse_move',dx,dy}));
+}
+function sendMouseBtn(btn,state){
+  if(ws&&ws.readyState===WebSocket.OPEN)
+    ws.send(JSON.stringify({type:'mouse_btn',btn,state}));
+}
+function sendMouseScroll(delta){
+  if(ws&&ws.readyState===WebSocket.OPEN)
+    ws.send(JSON.stringify({type:'mouse_scroll',delta}));
+}
+
+function setVisualState(el, isPressed){
+  if(!el) return;
+  if(isPressed) el.classList.add('pressed'); else el.classList.remove('pressed');
+}
+
+function clearAllMods(){
+  Object.keys(screenMods).forEach(name=>{
+    const hex=screenMods[name];
+    delete screenMods[name];
+    document.querySelectorAll(`[data-mod-code="${hex}"]`).forEach(el => el.classList.remove('mod-active'));
+  });
+}
+
+function buildSeq(keySeq){
+  let pre='', post='';
+  Object.values(screenMods).forEach(hex=>{ pre+=`{${hex}`; post+=`}${hex}`; });
+  clearAllMods();
+  return pre+keySeq+post;
+}
+
+/* ── Screen Controls Repeating Loops ── */
+function fireScreenKeyHold(e, el){
+  if(!connected) return;
+  if(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if(currentScreenHoldEl) fireScreenKeyRelease(currentScreenHoldEl);
+  
+  currentScreenHoldEl = el;
+  setVisualState(el, true);
+  
+  const seq = el.dataset.seq;
+  if(!seq) return;
+  
+  const full = buildSeq(seq);
+  sendRaw(full);
+  log(`→ ${full}`,'lk');
+
+  // Dynamic interval adjusts timing down if Arcade Turbo mode flag is flipped active
+  const cadenceRate = turboActive ? 65 : 140;
+
+  screenHoldInterval = setInterval(() => {
+    if(connected && currentScreenHoldEl === el){
+      sendRaw(full);
+    } else {
+      fireScreenKeyRelease(el);
+    }
+  }, cadenceRate);
+}
+
+function fireScreenKeyRelease(el){
+  if(currentScreenHoldEl === el){
+    if(screenHoldInterval) clearInterval(screenHoldInterval);
+    screenHoldInterval = null;
+    currentScreenHoldEl = null;
+  }
+  setVisualState(el, false);
+}
+
+function fireModKey(el, hex){
+  if(!connected) return;
+  const name=Object.keys(MOD_MAP).find(k=>MOD_MAP[k]===hex);
+  if(name){
+    toggleMod(name, hex);
+  } else {
+    const full=buildSeq(':'+hex);
+    sendRaw(full);
+    log(`→ :${hex}`,'lk');
+  }
+}
+
+function toggleMod(name, hex){
+  if(!connected) return;
+  const kbEls=document.querySelectorAll(`[data-mod-code="${hex}"]`);
+  if(screenMods[name]){
+    delete screenMods[name];
+    sendRaw(`}${hex}`);
+    kbEls.forEach(el => el.classList.remove('mod-active'));
+    log(`↑ ${name.toUpperCase()}`,'lm');
+  } else {
+    screenMods[name]=hex;
+    sendRaw(`{${hex}`);
+    kbEls.forEach(el => el.classList.add('mod-active'));
+    log(`↓ ${name.toUpperCase()}`,'lm');
+  }
+}
+
+function sendCombo(seq){
+  if(!connected) return;
+  clearAllMods();
+  sendRaw(seq);
+  log(`COMBO → ${seq}`,'lk');
+}
+
+/* ── Turbo Mode Modifier Engine ── */
+function toggleTurboMode() {
+  turboActive = !turboActive;
+  const btn = document.getElementById('gp-turbo-btn');
+  btn.classList.toggle('turbo-on', turboActive);
+  btn.textContent = turboActive ? 'TURBO: ON' : 'TURBO: OFF';
+  log(`Arcade Turbo Mode: ${turboActive ? 'ENABLED (Rapid-Fire Hold Cadence)' : 'DISABLED'}`, 'lw');
+}
+
+/* ── Arcade Encoder Spinner Engine ── */
+const spinner = document.getElementById('spinnerWheel');
+let spinnerActive = false;
+let spinnerLastX = 0;
+let spinnerAngle = 0;
+
+function startSpinner(clientX) {
+  if(!connected) return;
+  spinnerActive = true;
+  spinnerLastX = clientX;
+  spinner.style.borderColor = '#ffc107';
+}
+
+function moveSpinner(clientX) {
+  if(!spinnerActive || !connected) return;
+  const dx = clientX - spinnerLastX;
+  spinnerLastX = clientX;
+  if(dx === 0) return;
+
+  const userSens = parseInt(document.getElementById('sensSlider').value) / 10;
+  // Apply a clean geometric step dynamic calculation matching typical hardware spinner ratios
+  const deltaMove = Math.round(dx * userSens * 2.5);
+  
+  if (deltaMove !== 0) {
+    sendMouseMove(deltaMove, 0);
+    spinnerAngle += deltaMove * 4;
+    spinner.style.transform = `rotate(${spinnerAngle}deg)`;
+  }
+}
+
+function stopSpinner() {
+  if(spinnerActive) {
+    spinnerActive = false;
+    spinner.style.borderColor = '#f0a500';
+  }
+}
+
+spinner.addEventListener('mousedown', (e) => { e.preventDefault(); startSpinner(e.clientX); });
+spinner.addEventListener('touchstart', (e) => { e.preventDefault(); startSpinner(e.touches[0].clientX); }, {passive: false});
+
+document.addEventListener('mousemove', (e) => { if(spinnerActive) moveSpinner(e.clientX); });
+document.addEventListener('touchmove', (e) => { if(spinnerActive) { e.preventDefault(); moveSpinner(e.touches[0].clientX); } }, {passive: false});
+
+document.addEventListener('mouseup', () => stopSpinner());
+document.addEventListener('touchend', () => stopSpinner());
+document.addEventListener('touchcancel', () => stopSpinner());
+
+/* ── Mouse Drag Engine ── */
+const pad = document.getElementById('mousePad');
+const stick = document.getElementById('mouseStick');
+let dragActive = false;
+let totalMovedDistance = 0;
+let startX = 0, startY = 0;
+let lastX = 0, lastY = 0;
+let dragAccumX = 0, dragAccumY = 0;
+
+function startDrag(x, y){
+  dragActive = true;
+  startX = x; startY = y;
+  lastX = x; lastY = y;
+  totalMovedDistance = 0;
+  dragAccumX = 0; dragAccumY = 0;
+  pad.classList.add('active');
+  document.getElementById('mouseLabel').textContent = 'DRAGGING';
+  document.getElementById('mouseHint').textContent = 'Move to steer cursor';
+  positionStick(0,0);
+}
+function moveDrag(x, y){
+  if(!dragActive || !connected) return;
+  const dx = x - lastX;
+  const dy = y - lastY;
+  lastX = x; lastY = y;
+  
+  totalMovedDistance += Math.sqrt(dx * dx + dy * dy);
+  if(dx===0 && dy===0) return;
+
+  const sens = parseInt(document.getElementById('sensSlider').value)/10;
+  dragAccumX += dx*sens;
+  dragAccumY += dy*sens;
+  const sx = Math.trunc(dragAccumX);
+  const sy = Math.trunc(dragAccumY);
+  dragAccumX -= sx;
+  dragAccumY -= sy;
+  if(sx||sy) sendMouseMove(sx,sy);
+
+  const vx = Math.max(-30, Math.min(30, dx*4));
+  const vy = Math.max(-30, Math.min(30, dy*4));
+  positionStick(vx, vy);
+  clearTimeout(stickResetTimer);
+  stickResetTimer = setTimeout(()=>positionStick(0,0), 100);
+}
+let stickResetTimer = null;
+function positionStick(vx, vy){
+  const rect = pad.getBoundingClientRect();
+  stick.style.left = (rect.width/2 + vx - 8) + 'px';
+  stick.style.top  = (rect.height/2 + vy - 8) + 'px';
+}
+function stopDrag(){
+  dragActive = false;
+  pad.classList.remove('active');
+  document.getElementById('mouseLabel').textContent = connected ? 'Click and drag here' : 'Connect first to enable mouse';
+  document.getElementById('mouseHint').textContent = connected ? 'Cursor stays put — only the offset matters' : '';
+  positionStick(0,0);
+}
+
+pad.addEventListener('mousedown',(e)=>{ if(!connected) return; e.preventDefault(); startDrag(e.clientX, e.clientY); });
+pad.addEventListener('touchstart',(e)=>{ if(!connected) return; e.preventDefault(); const t=e.touches[0]; startDrag(t.clientX, t.clientY); },{passive:false});
+
+document.addEventListener('mousemove',(e)=>{ if(!dragActive) return; moveDrag(e.clientX, e.clientY); });
+document.addEventListener('touchmove',(e)=>{ if(!dragActive) return; e.preventDefault(); const t=e.touches[0]; moveDrag(t.clientX, t.clientY); },{passive:false});
+
+document.addEventListener('mouseup',()=>{ if(dragActive) stopDrag(); });
+document.addEventListener('touchend',()=>{ if(dragActive) stopDrag(); });
+document.addEventListener('touchcancel',()=>{ if(dragActive) stopDrag(); });
+
+document.addEventListener('wheel',(e)=>{
+  if(!connected) return;
+  if(e.target!==pad && !pad.contains(e.target)) return;
+  e.preventDefault();
+  sendMouseScroll(e.deltaY>0?1:-1);
+},{passive:false});
+
+function mouseBtn(btn,state,el){
+  if(!connected) return;
+  sendMouseBtn(btn,state);
+  if(state==='d') el.classList.add('pressed'); else el.classList.remove('pressed');
+  log(`Mouse btn ${btn} ${state}`,'lm');
+}
+function mouseBtnRelease(btn,el){
+  if(el.classList.contains('pressed')){
+    sendMouseBtn(btn,'u');
+    el.classList.remove('pressed');
+  }
+}
+function mouseScroll(dir){
+  if(!connected) return;
+  sendMouseScroll(dir);
+  log(`Scroll ${dir>0?'down':'up'}`,'lm');
+}
+
+/* ── Low-Latency Physical Auto-Repeat Implementation ── */
+document.addEventListener('keydown',(e)=>{
+  if(!connected) return;
+  if(e.target.tagName==='INPUT') return;
+  e.preventDefault();
+  
+  const code=e.code;
+  const seq=PHYS[code];
+  if(!seq){ log(`Unknown: ${code}`,'lw'); return; }
+
+  if (heldKeys.has(code)) return;
+  heldKeys.add(code);
+
+  const matchingTargets = document.querySelectorAll(`[data-seq="${seq}"], [data-mod-code="${seq}"]`);
+  matchingTargets.forEach(target => setVisualState(target, true));
+
+  if(PHYS_MODS.has(code)){
+    const name=Object.keys(MOD_MAP).find(k=>MOD_MAP[k]===seq);
+    if(name) toggleMod(name,seq); else sendRaw(`{${seq}`);
+  } else {
+    const full=buildSeq(seq);
+    sendRaw(full);
+    log(`→ ${full}`,'lk');
+
+    const internalHoldTiming = turboActive ? 65 : 140;
+    const intervalId = setInterval(() => {
+      if(connected && heldKeys.has(code)){
+        sendRaw(full);
+      } else {
+        clearInterval(intervalId);
+      }
+    }, internalHoldTiming);
+    physicalIntervals.set(code, intervalId);
+  }
+},true);
+
+document.addEventListener('keyup',(e)=>{
+  if(!connected) return;
+  if(e.target.tagName==='INPUT') return;
+  e.preventDefault();
+
+  const code=e.code;
+  const seq=PHYS[code];
+  if(!seq) return;
+
+  heldKeys.delete(code);
+  if(physicalIntervals.has(code)){
+    clearInterval(physicalIntervals.get(code));
+    physicalIntervals.delete(code);
+  }
+
+  const matchingTargets = document.querySelectorAll(`[data-seq="${seq}"], [data-mod-code="${seq}"]`);
+  matchingTargets.forEach(target => setVisualState(target, false));
+},true);
+
+document.addEventListener('contextmenu', (e) => {
+  if (connected && (e.target === pad || pad.contains(e.target) || e.target.classList.contains('mbtn'))) {
+    e.preventDefault();
+  }
+});
+
+const activePadClicks = new Map();
+
+document.addEventListener('mousedown', (e) => {
+  if (!connected || e.target.tagName === 'INPUT') return;
+  if (e.target === pad || pad.contains(e.target)) {
+    let targetId = '';
+    if (e.button === 0) targetId = 'mb-left';
+    if (e.button === 1) targetId = 'mb-middle';
+    if (e.button === 2) targetId = 'mb-right';
+    const el = document.getElementById(targetId);
+
+    const context = { isPersistentHold: false, holdTimer: null, targetId: targetId };
+    context.holdTimer = setTimeout(() => {
+      if (totalMovedDistance < 8 && el) {
+        context.isPersistentHold = true;
+        mouseBtn(e.button, 'd', el);
+      }
+    }, 180);
+
+    activePadClicks.set(e.button, context);
+  }
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (!connected) return;
+  if (e.target === pad || pad.contains(e.target)) {
+    const context = activePadClicks.get(e.button);
+    if (context) {
+      clearTimeout(context.holdTimer);
+      activePadClicks.delete(e.button);
+      const el = document.getElementById(context.targetId);
+      if (context.isPersistentHold) {
+        if (el) mouseBtn(e.button, 'u', el);
+        return;
+      } else if (totalMovedDistance < 5) {
+        if (el) {
+          e.preventDefault();
+          mouseBtn(e.button, 'd', el);
+          setTimeout(() => mouseBtn(e.button, 'u', el), 65);
+          return;
+        }
+      }
+    }
+  }
+
+  let targetId = '';
+  if (e.button === 0) targetId = 'mb-left';
+  if (e.button === 1) targetId = 'mb-middle';
+  if (e.button === 2) targetId = 'mb-right';
+  const el = document.getElementById(targetId);
+  if (el && el.classList.contains('pressed')) { mouseBtn(e.button, 'u', el); }
+});
+
+document.addEventListener('wheel', (e) => {
+  if (!connected || e.target.tagName === 'INPUT') return;
+  if (e.target === pad || pad.contains(e.target)) {
+    e.preventDefault();
+    const isScrollDown = e.deltaY > 0;
+    const targetId = isScrollDown ? 'mb-scrolldown' : 'mb-scrollup';
+    const el = document.getElementById(targetId);
+    if (el) {
+      el.classList.add('pressed');
+      mouseScroll(isScrollDown ? 1 : -1);
+      setTimeout(() => el.classList.remove('pressed'), 120);
+    }
+  }
+}, { passive: false });
+
+// Initialize Default State Profiles
+setEnabled(false);
+setGamepadMode('pc');
+
+    // ─── AUTO-SAVE & RESTORE MISTER IP ───
+    document.addEventListener('DOMContentLoaded', () => {
+        const ipInput = document.getElementById('ip');
+        const pwInput = document.getElementById('pw');
+        const portInput = document.getElementById('wsport');
+
+        // 1. Restore saved values from previous sessions if they exist
+        if (localStorage.getItem('mister_saved_ip')) {
+            ipInput.value = localStorage.getItem('mister_saved_ip');
+        }
+        if (localStorage.getItem('mister_saved_pw')) {
+            pwInput.value = localStorage.getItem('mister_saved_pw');
+        }
+        if (localStorage.getItem('mister_saved_port')) {
+            portInput.value = localStorage.getItem('mister_saved_port');
+        }
+
+        // 2. Listen for live changes and save them instantly to app memory
+        if (ipInput) ipInput.addEventListener('input', () => localStorage.setItem('mister_saved_ip', ipInput.value));
+        if (pwInput) pwInput.addEventListener('input', () => localStorage.setItem('mister_saved_pw', pwInput.value));
+        if (portInput) portInput.addEventListener('input', () => localStorage.setItem('mister_saved_port', portInput.value));
+    });
+</script>
+</body>
+</html>
