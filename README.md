@@ -1,5 +1,7 @@
 # MiSTer Remote Input App
 
+# MiSTer Input Link
+
 A lightweight desktop application that allows you to relay keyboard, mouse, and macro inputs to your MiSTer FPGA over the network using WebSockets and the MiSTer keyboard daemon (kd).
 
 This app wraps a sleek, low-latency HTML virtual interface and an asynchronous Python backend proxy into a single standalone executable—eliminating the need for custom batch files, browser configurations, or separate script launches.
@@ -32,7 +34,11 @@ This app wraps a sleek, low-latency HTML virtual interface and an asynchronous P
 
 ### 1. On your MiSTer FPGA
 
-Ensure that the keyboard daemon (kd) is enabled and running on your MiSTer. It listens on TCP port 8064 by default to accept raw remote terminal inputs.
+The application requires the keyboard daemon binary (`kd`) to be active on your console.
+
+* Download or compile the `kd` binary.
+* Place the `kd` binary file explicitly inside the `/media/fat/linux/` directory on your MiSTer SD card.
+* Ensure the daemon is running and active. It listens on TCP port 8064 by default to intercept and inject the raw network inputs.
 
 ### 2. Running Locally (Development Mode)
 
