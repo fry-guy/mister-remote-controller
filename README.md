@@ -1,4 +1,4 @@
-# MiSTer Input Link
+# MiSTer Remote Input App
 
 A lightweight desktop application that allows you to relay keyboard, mouse, and macro inputs to your MiSTer FPGA over the network using WebSockets and the MiSTer keyboard daemon (kd).
 
