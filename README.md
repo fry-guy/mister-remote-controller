@@ -1,84 +1,144 @@
-# MiSTer Remote Input App
+# MiSTer Keyboard
 
-A lightweight desktop application that allows you to relay keyboard, mouse, and macro inputs to your MiSTer FPGA over the network using WebSockets and the MiSTer keyboard daemon (kd).
-
-This app wraps a sleek, low-latency HTML virtual interface and an asynchronous Python backend proxy into a single standalone executable—eliminating the need for custom batch files, browser configurations, or separate script launches.
+A desktop app for relaying keyboard, mouse, and gamepad inputs to your MiSTer FPGA over the network. Built around MiSTer's `kd` (keyboard daemon), it wraps a virtual input interface and Python backend into a single standalone executable — no batch files, browser configuration, or separate script launches required.
 
 ## Features
 
-* Unified Application: Runs as a single `.exe` or desktop app window with an embedded UI.
-* Low-Latency Input Relay: Captures typing, mouse movements, mouse button clicks, and scrolls, immediately streaming them via WebSockets to MiSTer's TCP layer.
-* Hardware Profile Toggle: Easily switch between a standard PC layout mapping and specialized core layouts (e.g., Amiga).
-* Persistent Settings: Automatically retains your Target IP, passwords, and custom proxy port designations across app restarts (no private/incognito reset loop).
-* Integrated Hardware Macros: One-click shortcuts for frequent core actions like opening the system menu (F1) or triggering a hardware reset (F10).
+- **Single executable** — one `.exe` bundles the UI and backend with no external dependencies
+- **Normal mode** — on-screen keyboard, mouse pad, and gamepad UI send inputs via WebSocket while the app is focused; physical keyboard also works when the app window is in focus
+- **Background relay mode** — minimizes the app and captures all physical keyboard and mouse input system-wide, routing it to MiSTer transparently
+- **Auto-reconnect** — detects and recovers from dropped kd connections automatically
+- **Persistent IP** — remembers the last MiSTer IP address between sessions
+- **Mouse relay** — joystick-style mouse pad with adjustable sensitivity; left, middle, and right click; scroll
+- **Game controller** — D-pad, action buttons, shoulders, spinner wheel, COIN/SERVICE, turbo mode; supports PC/DOS and Console (RetroPad) layouts
+- **Shortcuts** — one-click combos for common actions (Start Menu, Task Manager, Alt+Tab, Copy, Paste, Cut, Undo, Select All, Save, MiSTer OSD)
+
+## Hotkeys
+
+| Combo | Action |
+|---|---|
+| `Ctrl+Alt+Shift+M` | Toggle background relay mode on/off |
+| `Ctrl+Alt+Shift+F` | Open MiSTer OSD (Win+F12 substitute for background mode) |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────┐                 ┌─────────────┐
-│       Desktop App Window        │                 │             │
-│  (HTML UI + LocalStorage Memory) │                 │   MiSTer    │
-│                │                │                 │    FPGA     │
-│       (Local WebSockets)        │                 │             │
-│                ▼                │   (TCP Socket)  │  ┌───────┐  │
-│         Python Backend          ├────────────────►│  │  kd   │  │
-│  (AsyncIO Server Proxy Tunnel)  │   Port 8064     │  │Daemon │  │
-└─────────────────────────────────┘                 │  └───────┘  │
-                                                    └─────────────┘
-
+┌──────────────────────────────────────┐              ┌─────────────────┐
+│           Desktop App (app.exe)      │              │   MiSTer FPGA   │
+│                                      │              │                 │
+│  ┌─────────────────────────────────┐ │              │  ┌───────────┐  │
+│  │   HTML UI (mister-keyboard.html)│ │              │  │ kd daemon │  │
+│  │   WebSocket → ws://127.0.0.1   │ │  TCP :8064   │  │ :8064     │  │
+│  └──────────────┬──────────────────┘ ├─────────────►│  └───────────┘  │
+│                 │                    │              │                 │
+│  ┌──────────────▼──────────────────┐ │              └─────────────────┘
+│  │  Python backend (asyncio)       │ │
+│  │  - Embedded WebSocket proxy     │ │
+│  │  - kd TCP connection + watchdog │ │
+│  │  - pynput keyboard/mouse relay  │ │
+│  │  - Window management (Win32)    │ │
+│  └─────────────────────────────────┘ │
+└──────────────────────────────────────┘
 ```
 
-## Setup and Prerequisites
+## Setup
 
-### 1. On your MiSTer FPGA
+### 1. MiSTer FPGA
 
-The application requires the keyboard daemon binary (`kd`) to be active on your console.
+The app requires the `kd` binary to be running on your MiSTer.
 
-* Download or compile the `kd` binary.
-* Place the `kd` binary file explicitly inside the `/media/fat/linux/` directory on your MiSTer SD card.
-* To make kd launch automatically every time your MiSTer boots up, append the execution line /media/fat/linux/kd & to your system startup script located at /media/fat/linux/user-startup.sh.
-* Ensure the daemon is running and active. It listens on TCP port 8064 by default to intercept and inject the raw network inputs.
+1. Obtain the `kd` binary and place it at `/media/fat/linux/kd`
+2. Make it executable: `chmod +x /media/fat/linux/kd`
+3. Add it to your startup script so it launches automatically at boot:
 
-### 2. Running Locally (Development Mode)
-
-If you want to run or modify the source code directly:
-
-```bash
-# Clone the repository and navigate inside
-git clone https://github.com/yourusername/mister-input-link.git
-cd mister-input-link
-
-# Install dependencies
-pip install websockets pywebview pyinstaller
-
-# Launch the app
-python main.py
-
+```sh
+# /media/fat/linux/user-startup.sh
+# Add this line — the sleep gives uinput time to initialize first
+sleep 5 && /media/fat/linux/kd &
 ```
 
-## Packaging into a Standalone Executable
+4. Verify it's running: `ps aux | grep kd`
+5. Test it manually: `echo "t 30" | nc 127.0.0.1 8064` — an `a` should appear on screen
 
-To bundle the Python backend and HTML interface into a clean, zero-dependency executable (`.exe`) that runs without an open terminal window:
+### 2. Windows
 
-### On Windows
+Download the latest `app.exe` from [Releases](../../releases) and run it. No installation required.
 
-```bash
-pyinstaller --clean --noconsole --onefile --add-data "mister-keyboard.html;." main.py
+## Usage
+
+1. Launch `app.exe`
+2. Enter your MiSTer's IP address in the **MISTER IP** field
+3. Click **Connect** — the dot turns green when connected
+4. Use the on-screen keyboard, mouse pad, or gamepad controls
+5. For physical keyboard/mouse relay, click any on-screen key first to focus the keyboard area, then type freely
+6. Press **Go Background Mode** (or `Ctrl+Alt+Shift+M`) to minimize and relay all input system-wide
+
+## Building from Source
+
+### Prerequisites
 
 ```
-
-### On macOS / Linux
-
-```bash
-pyinstaller --clean --noconsole --onefile --add-data "mister-keyboard.html:." main.py
-
+pip install websockets pynput pyinstaller
 ```
 
-After compilation, navigate to the generated `dist/` directory and double-click the executable to launch the app instantly.
+### Dependencies
 
-## Configuration and Usage
+| Package | Purpose |
+|---|---|
+| `websockets` | WebSocket server for browser↔Python communication |
+| `pynput` | Global keyboard and mouse capture |
+| `pyinstaller` | Packaging into a standalone executable |
 
-1. Launch the compiled application executable.
-2. Enter your MiSTer's Target IP address in the configuration panel.
-3. Click Connect Link.
-4. The system link dot status will turn Green upon establishing a secure handshake with the MiSTer network. You can now use the trackpad, visual buttons, or your physical keyboard to control the remote core environment seamlessly.
+### Run without compiling
+
+```sh
+python app.py
+```
+
+### Compile on Windows
+
+```sh
+pyinstaller --clean --onefile --noconsole \
+  --hidden-import pynput.keyboard._win32 \
+  --hidden-import pynput.mouse._win32 \
+  --add-data "mister-keyboard.html;." \
+  app.py
+```
+
+The compiled executable will be in the `dist/` folder.
+
+### Compile on macOS / Linux
+
+```sh
+pyinstaller --clean --onefile --noconsole \
+  --hidden-import pynput.keyboard._xorg \
+  --hidden-import pynput.mouse._xorg \
+  --add-data "mister-keyboard.html:." \
+  app.py
+```
+
+> **Note:** The app uses Win32 APIs for window management and focus stealing — full functionality is only supported on Windows. macOS/Linux builds will relay inputs but window minimize/restore behavior may differ.
+
+## Troubleshooting
+
+**Can't connect / stays on Connect button**
+- Verify `kd` is running on the MiSTer: `ps aux | grep kd`
+- Check the IP address is correct: `ip addr | grep 192.168`
+- Make sure nothing else is using port 8064 on the MiSTer: `netstat -tlnp | grep 8064`
+- Try sending a test input directly: `echo "t 30" | nc 127.0.0.1 8064`
+
+**Keys stop working after multiple mode switches**
+- Disconnect and reconnect in the UI to reset the kd connection
+- If kd becomes unresponsive, restart it on the MiSTer: `kill $(pgrep kd) && /media/fat/linux/kd &`
+
+**App doesn't close after clicking Quit**
+- Must be connected to MiSTer for the Quit button to send the shutdown signal
+- Force close via Task Manager if needed, then relaunch
+
+**Win+F12 doesn't open the MiSTer OSD in background mode**
+- Windows intercepts the Win key before pynput can capture it
+- Use `Ctrl+Alt+Shift+F` instead — this sends the equivalent Win+F12 signal to the MiSTer
+
+**MiSTer IP keeps changing**
+- Set a DHCP reservation in your router to give your MiSTer a fixed IP (bind by MAC address)
+- Find your MiSTer's MAC: `ip link show eth0` or `ip link show wlan0`
