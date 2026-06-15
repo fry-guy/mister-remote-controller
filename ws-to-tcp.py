@@ -1,7 +1,6 @@
 import asyncio
 import json
 import websockets
-import socket
 
 KEY_CODES = {
     'a':30,'b':48,'c':46,'d':32,'e':18,'f':33,'g':34,'h':35,
@@ -30,26 +29,94 @@ KEY_CODES = {
     ':45':69,                             # NumLock
 }
 
-kd_sock = None
+kd_reader = None
+kd_writer = None
 kd_port = 8064
+kd_host = None  # Track last used host for auto-reconnect
 
-def kd_connect(host):
-    global kd_sock
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, kd_port))
-    kd_sock = s
-    print(f'KD connected to {host}:{kd_port}')
+# All active browser WebSocket connections — used to broadcast reconnect status
+active_browsers = set()
 
-def kd_send(cmd):
-    global kd_sock
-    if kd_sock is None: return False
+async def kd_connect(host):
+    global kd_reader, kd_writer, kd_host
+    await kd_disconnect()
     try:
-        kd_sock.sendall((cmd + '\n').encode())
+        kd_reader, kd_writer = await asyncio.wait_for(
+            asyncio.open_connection(host, kd_port),
+            timeout=3.0
+        )
+        kd_host = host
+        print(f'KD connected to {host}:{kd_port}')
         return True
     except Exception as e:
-        print(f'KD error: {e}')
-        kd_sock = None
+        print(f'KD connection failed to {host}:{kd_port} -> {e}')
+        kd_reader, kd_writer = None, None
         return False
+
+async def kd_disconnect():
+    global kd_reader, kd_writer
+    if kd_writer:
+        try:
+            kd_writer.close()
+            await asyncio.wait_for(kd_writer.wait_closed(), timeout=2.0)
+        except Exception:
+            pass
+    kd_reader = None
+    kd_writer = None
+    await asyncio.sleep(0.1)  # Brief pause to let OS release the socket
+
+async def kd_send(cmd):
+    global kd_writer
+    if kd_writer is None:
+        return False
+    try:
+        kd_writer.write((cmd + '\n').encode())
+        await kd_writer.drain()
+        return True
+    except Exception as e:
+        print(f'KD send error: {e}')
+        await kd_disconnect()
+        return False
+
+async def kd_is_alive():
+    """Check if the kd TCP connection is still healthy."""
+    global kd_writer
+    if kd_writer is None:
+        return False
+    if kd_writer.is_closing():
+        return False
+    try:
+        # Probe the transport directly — no data sent, just checks socket state
+        transport = kd_writer.transport
+        if transport and transport.is_closing():
+            return False
+    except Exception:
+        return False
+    return True
+
+async def kd_watchdog():
+    """Background task — detects dead kd connection and auto-reconnects."""
+    while True:
+        await asyncio.sleep(3)
+        if kd_host is None:
+            continue  # Never connected yet, nothing to watch
+        if not await kd_is_alive():
+            print(f'KD connection lost — reconnecting to {kd_host}...')
+            success = await kd_connect(kd_host)
+            # Notify all connected browsers of reconnect status
+            msg = json.dumps({
+                'type': 'status',
+                'ok': success,
+                'msg': f'KD reconnected to {kd_host}:{kd_port}' if success
+                       else f'KD reconnect failed — retrying...'
+            })
+            dead = set()
+            for ws in active_browsers:
+                try:
+                    await ws.send(msg)
+                except Exception:
+                    dead.add(ws)
+            active_browsers.difference_update(dead)
 
 def parse_mbc_seq(seq):
     commands = []
@@ -80,41 +147,49 @@ def parse_mbc_seq(seq):
     return commands
 
 async def handle(ws):
-    global kd_sock
-    print('Browser connected')
-    async for msg in ws:
-        try:
-            d = json.loads(msg)
+    print('Browser connected to proxy')
+    active_browsers.add(ws)
+    try:
+        async for msg in ws:
+            try:
+                d = json.loads(msg)
 
-            if d['type'] == 'connect':
-                host = d['host']
-                try:
-                    kd_connect(host)
-                    await ws.send(json.dumps({'type':'status','ok':True,'msg':f'KD connected to {host}:{kd_port}'}))
-                except Exception as e:
-                    await ws.send(json.dumps({'type':'status','ok':False,'msg':f'KD connect failed: {e} — is kd running on MiSTer?'}))
+                if d['type'] == 'connect':
+                    host = d['host']
+                    success = await kd_connect(host)
+                    if success:
+                        await ws.send(json.dumps({'type':'status','ok':True,'msg':f'KD connected to {host}:{kd_port}'}))
+                    else:
+                        await ws.send(json.dumps({'type':'status','ok':False,'msg':f'KD connect failed — is MiSTer active at {host}?'}))
 
-            elif d['type'] == 'key':
-                for cmd in parse_mbc_seq(d['seq']):
-                    kd_send(cmd)
+                elif d['type'] == 'key':
+                    for cmd in parse_mbc_seq(d['seq']):
+                        await kd_send(cmd)
 
-            elif d['type'] == 'mouse_move':
-                kd_send(f"m {d['dx']} {d['dy']}")
+                elif d['type'] == 'mouse_move':
+                    await kd_send(f"m {d['dx']} {d['dy']}")
 
-            elif d['type'] == 'mouse_btn':
-                btn = d['btn']   # 0=left, 1=right, 2=middle
-                state = d['state']  # 'd' or 'u'
-                kd_send(f"mb{btn} {state}")
+                elif d['type'] == 'mouse_btn':
+                    btn = d['btn']
+                    state = d['state']
+                    await kd_send(f"mb{btn} {state}")
 
-            elif d['type'] == 'mouse_scroll':
-                kd_send(f"ms {d['delta']}")
+                elif d['type'] == 'mouse_scroll':
+                    await kd_send(f"ms {d['delta']}")
 
-        except Exception as e:
-            print(f'Error: {e}')
+            except Exception as e:
+                print(f'Proxy handle error: {e}')
+    finally:
+        active_browsers.discard(ws)
 
 async def main():
-    print('MiSTer Keyboard proxy on ws://localhost:4568')
-    async with websockets.serve(handle, 'localhost', 4568):
+    print('MiSTer Keyboard proxy on ws://127.0.0.1:4568')
+    asyncio.ensure_future(kd_watchdog())
+    async with websockets.serve(handle, '127.0.0.1', 4568):
         await asyncio.Future()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

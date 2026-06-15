@@ -7,8 +7,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Consolas', 'Courier New', monospace;
-  background: #0a0a0a;
-  color: #c8c8c8;
+  background: #0d1117;
+  color: #e6edf3;
   min-height: 100vh;
   padding: 20px;
   user-select: none;
@@ -16,102 +16,94 @@ body {
 
 /* ── Header ── */
 .header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: #333; transition: all 0.3s; flex-shrink: 0; }
-.dot.connected { background: #4caf50; box-shadow: 0 0 7px #4caf50; }
-.dot.connecting { background: #f0a500; }
-.dot.error { background: #f44; }
-.title { font-size: 17px; font-weight: 700; letter-spacing: 3px; color: #fff; text-transform: uppercase; }
-.subtitle { font-size: 10px; color: #333; margin-left: auto; letter-spacing: 1px; }
-.divider { height: 1px; background: #1a1a1a; margin-bottom: 14px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #30363d; transition: all 0.3s; flex-shrink: 0; }
+.dot.connected { background: #3fb950; box-shadow: 0 0 6px rgba(63,185,80,0.5); }
+.dot.connecting { background: #d29922; }
+.dot.error { background: #f85149; }
+.title { font-size: 15px; font-weight: 700; letter-spacing: 4px; color: #e6edf3; text-transform: uppercase; }
+.subtitle { font-size: 9px; color: #30363d; margin-left: auto; letter-spacing: 1px; }
+.divider { height: 1px; background: #21262d; margin-bottom: 14px; }
 
 /* ── Connection bar ── */
 .conn-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
 .fl { display: flex; flex-direction: column; gap: 3px; }
-.fl label { font-size: 9px; color: #444; letter-spacing: 1px; }
+.fl label { font-size: 9px; color: #484f58; letter-spacing: 1px; }
 input {
-  background: #111; border: 1px solid #222; border-radius: 3px;
-  color: #c8c8c8; padding: 5px 9px; font-size: 12px; font-family: inherit;
+  background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+  color: #e6edf3; padding: 5px 9px; font-size: 12px; font-family: inherit;
 }
+input:focus { outline: none; border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88,166,255,0.1); }
 input:disabled { opacity: 0.4; }
 input.ip { width: 145px; }
 input.pw { width: 90px; }
 input.port { width: 65px; }
 .btn {
-  padding: 6px 14px; font-size: 12px; font-family: inherit;
-  border-radius: 3px; cursor: pointer; border: 1px solid; letter-spacing: 1px;
+  padding: 5px 14px; font-size: 11px; font-family: inherit;
+  border-radius: 6px; cursor: pointer; border: 1px solid; letter-spacing: 1px;
 }
-.btn-connect { background: #112211; border-color: #224422; color: #4caf50; }
-.btn-disconnect { background: #221111; border-color: #442222; color: #f44; }
+.btn-connect { background: #0d1117; border-color: #238636; color: #3fb950; }
+.btn-connect:hover { background: #0f2318; border-color: #2ea043; }
+.btn-disconnect { background: #0d1117; border-color: #6e2230; color: #f85149; }
+.btn-disconnect:hover { background: #1a0d0d; }
+.btn-quit { background: #0d1117; border-color: #30363d; color: #484f58; margin-left: auto; }
+.btn-quit:hover { background: #1a0d0d; border-color: #6e2230; color: #f85149; }
 .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ── Section labels ── */
 .section-label {
-  font-size: 9px; color: #333; letter-spacing: 2px;
+  font-size: 9px; color: #484f58; letter-spacing: 2px;
   text-transform: uppercase; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
 }
+.section-label::after { content: ''; flex: 1; height: 1px; background: #21262d; }
 
 /* ── Combo row ── */
 .combo-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .combo-btn {
-  padding: 5px 10px; font-size: 11px; font-family: inherit;
-  border-radius: 3px; cursor: pointer; border: 1px solid #1a2e1a;
-  background: #111; color: #81c784; transition: all 0.12s;
+  padding: 4px 10px; font-size: 11px; font-family: inherit;
+  border-radius: 6px; cursor: pointer; border: 1px solid #21262d;
+  background: #161b22; color: #58a6ff; transition: all 0.1s;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
-.combo-btn:hover:not(:disabled) { background: #0d1f0d; border-color: #2a5a2a; }
+.combo-btn:hover:not(:disabled) { background: #1c2128; border-color: #388bfd; }
 .combo-btn:active:not(:disabled) { transform: scale(0.96); }
-.combo-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.combo-btn:disabled { opacity: 0.2; cursor: not-allowed; }
 .combo-key { font-size: 11px; font-weight: 700; }
-.combo-desc { font-size: 8px; color: #3a5a3a; letter-spacing: 0.5px; }
+.combo-desc { font-size: 8px; color: #30363d; letter-spacing: 0.5px; }
 
-/* ── Keyboard Wrap Grid Matrix ── */
-.keyboard-wrap { 
-  margin-bottom: 14px; 
+/* ── Keyboard ── */
+.keyboard-wrap {
+  margin-bottom: 14px;
   display: grid;
   grid-template-columns: minmax(630px, 14fr) minmax(130px, 3fr) minmax(175px, 4fr);
   gap: 16px;
   align-items: start;
 }
-.kb-main, .kb-nav, .kb-numpad { display: flex; flex-direction: column; gap: 4px; }
+.kb-main, .kb-nav, .kb-numpad { display: flex; flex-direction: column; gap: 3px; }
 .kb-nav { padding-top: 44px; }
 .kb-numpad { padding-top: 44px; }
-.kb-row { display: flex; gap: 4px; width: 100%; }
+.kb-row { display: flex; gap: 3px; width: 100%; }
 
 .key {
-  height: 40px;
-  min-width: 38px;
-  flex: 1;
-  padding: 0 4px;
-  background: #222;
-  border: 1px solid #333;
-  border-bottom: 3px solid #2a2a2a;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  font-size: 11px; color: #ddd;
-  transition: all 0.08s;
-  position: relative;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  height: 38px; min-width: 36px; flex: 1; padding: 0 4px;
+  background: #161b22; border: 1px solid #30363d; border-bottom: 2px solid #21262d;
+  border-radius: 6px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 11px; color: #8b949e; transition: all 0.08s;
+  position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.key:hover:not(.dead) { background: #2c2c2c; border-color: #444; color: #fff; }
+.key:hover:not(.dead) { background: #1c2128; border-color: #484f58; color: #e6edf3; }
 .key:active:not(.dead), .key.pressed {
-  background: #0d1f0d;
-  border-color: #2a5a2a;
-  border-bottom-width: 1px;
-  color: #81c784;
-  transform: translateY(2px);
+  background: #0d1f0d; border-color: #238636; border-bottom-width: 1px;
+  color: #3fb950; transform: translateY(1px);
 }
-.key.mod-active { background: #0d1f33; border-color: #1e4d7a; color: #64b5f6; }
-.key.dead { cursor: default; background: #0d0d0d; border-color: #161616; color: #222; border-bottom-width: 1px; }
-.key .top { font-size: 9px; color: #999; line-height: 1; }
+.key.mod-active { background: #0d1838; border-color: #1f6feb; color: #58a6ff; }
+.key.dead { cursor: default; background: #0d1117; border-color: #161b22; color: #21262d; border-bottom-width: 1px; }
+.key .top { font-size: 9px; color: #484f58; line-height: 1; }
 .key .bottom { font-size: 11px; line-height: 1; }
 .key .single { font-size: 11px; }
 .key .label { font-size: 9px; letter-spacing: 0.5px; }
 
-/* Dynamic proportions */
 .w15 { flex-grow: 1.5; min-width: 55px; }
 .w175 { flex-grow: 1.75; min-width: 66px; }
 .w2 { flex-grow: 2; min-width: 79px; }
@@ -120,185 +112,113 @@ input.port { width: 65px; }
 .w625 { flex-grow: 6.25; min-width: 242px; }
 .w7 { flex-grow: 7; min-width: 271px; }
 
-/* ── Mouse joystick pad ── */
+/* ── Mouse ── */
 .mouse-section { margin-bottom: 14px; }
 .mouse-controls-row { display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; }
 .mouse-pad {
-  background: #0d0d0d;
-  border: 1px solid #222;
-  border-radius: 4px;
-  height: 150px;
-  flex: 1;
-  min-width: 220px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  cursor: grab;
-  position: relative;
-  transition: background 0.15s, border-color 0.15s;
-  touch-action: none;
-  overflow: hidden;
+  background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+  height: 150px; flex: 1; min-width: 220px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: crosshair; position: relative; transition: background 0.15s, border-color 0.15s;
+  touch-action: none; overflow: hidden;
 }
-.mouse-pad.active {
-  background: #0a150a;
-  border-color: #1a3a1a;
-  cursor: grabbing;
-}
-.mouse-pad.disabled { opacity: 0.3; cursor: not-allowed; }
-.mouse-pad-label { font-size: 12px; color: #555; letter-spacing: 1px; margin-bottom: 6px; pointer-events: none; }
-.mouse-pad-hint { font-size: 10px; color: #333; pointer-events: none; }
-.mouse-pad.active .mouse-pad-label { color: #4caf50; }
-.mouse-pad.active .mouse-pad-hint { color: #2a5a2a; }
+.mouse-pad.active { background: #0d1f0d; border-color: #238636; cursor: none; }
+.mouse-pad.disabled { opacity: 0.25; cursor: not-allowed; }
+.mouse-pad-label { font-size: 11px; color: #30363d; letter-spacing: 2px; margin-bottom: 4px; pointer-events: none; text-transform: uppercase; }
+.mouse-pad-hint { font-size: 9px; color: #21262d; pointer-events: none; letter-spacing: 1px; }
+.mouse-pad.active .mouse-pad-label { color: #3fb950; }
+.mouse-pad.active .mouse-pad-hint { color: #238636; }
 .mouse-stick {
-  position: absolute;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: #2a5a2a;
-  border: 1px solid #4caf50;
-  pointer-events: none;
-  display: none;
+  position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  background: #238636; border: 1px solid #3fb950; pointer-events: none; display: none;
 }
-.mouse-pad.active .mouse-stick { block; }
+.mouse-pad.active .mouse-stick { display: block; }
 .mouse-side { display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
 .mouse-btns { display: flex; gap: 6px; }
 .mbtn {
-  flex: 1; padding: 10px 0; font-size: 11px; font-family: inherit;
-  border-radius: 3px; cursor: pointer; border: 1px solid #333;
-  background: #1c1c1c; color: #aaa; letter-spacing: 1px; text-align: center;
+  flex: 1; padding: 10px 0; font-size: 10px; font-family: inherit;
+  border-radius: 6px; cursor: pointer; border: 1px solid #30363d;
+  background: #161b22; color: #8b949e; letter-spacing: 1px; text-align: center;
   transition: all 0.08s;
 }
-.mbtn:active, .mbtn.pressed { background: #0a1f0a; border-color: #2a5a2a; color: #81c784; }
-.mbtn:disabled { opacity: 0.25; cursor: not-allowed; }
+.mbtn:active, .mbtn.pressed { background: #0d1f0d; border-color: #238636; color: #3fb950; }
+.mbtn:disabled { opacity: 0.2; cursor: not-allowed; }
 .scroll-row { display: flex; gap: 6px; }
 .sensitivity-block {
   display: flex; flex-direction: column; gap: 4px; font-size: 9px;
-  color: #777; letter-spacing: 1px; margin-top: auto;
+  color: #484f58; letter-spacing: 1px; margin-top: auto;
 }
-.sensitivity-block input[type=range] { width: 100%; accent-color: #4caf50; }
+.sensitivity-block input[type=range] { width: 100%; accent-color: #58a6ff; }
 
-/* Game Controller Layout */
+/* ── Gamepad ── */
 .gamepad-section { margin-bottom: 14px; }
 .gamepad-mode-row { display: flex; gap: 6px; margin-bottom: 8px; }
 .mode-btn {
-  padding: 5px 12px; font-size: 10px; font-family: inherit;
-  border-radius: 3px; cursor: pointer; border: 1px solid #333;
-  background: #1c1c1c; color: #888; letter-spacing: 1px;
-  transition: all 0.12s;
+  padding: 4px 12px; font-size: 10px; font-family: inherit;
+  border-radius: 6px; cursor: pointer; border: 1px solid #30363d;
+  background: #161b22; color: #484f58; letter-spacing: 1px; transition: all 0.1s;
 }
-.mode-btn.active { background: #0d1f33; border-color: #1e4d7a; color: #64b5f6; }
-.mode-btn:hover:not(.active) { background: #222; color: #ccc; }
-.gamepad-chassis { 
-  background: #141414; 
-  border: 1px solid #222; 
-  border-radius: 20px; 
-  padding: 24px 30px;
-  display: grid;
+.mode-btn.active { background: #0d1838; border-color: #1f6feb; color: #58a6ff; }
+.mode-btn:hover:not(.active) { background: #1c2128; color: #8b949e; }
+.gamepad-chassis {
+  background: #0d1117; border: 1px solid #21262d; border-radius: 20px;
+  padding: 24px 30px; display: grid;
   grid-template-columns: 1fr 1fr 1fr 120px;
-  align-items: center;
-  gap: 20px;
-  position: relative;
-  max-width: 1000px;
-  margin: 0 auto;
+  align-items: center; gap: 20px; position: relative; max-width: 1000px; margin: 0 auto;
 }
-
-/* Unified D-Pad Cross */
 .dpad-container { display: flex; justify-content: center; }
-.dpad-cross { 
-  display: grid; 
-  grid-template-columns: 42px 42px 42px; 
-  grid-template-rows: 42px 42px 42px; 
-  gap: 0px;
+.dpad-cross {
+  display: grid; grid-template-columns: 42px 42px 42px;
+  grid-template-rows: 42px 42px 42px; gap: 0px;
 }
 .dpad-cross .key { min-width: 42px; height: 42px; border-radius: 2px; }
-.dpad-cross .d-up { border-radius: 6px 6px 2px 2px; border-bottom: 1px solid #333; }
-.dpad-cross .d-left { border-radius: 6px 2px 2px 6px; border-right: 1px solid #333; }
-.dpad-cross .d-right { border-radius: 2px 6px 6px 2px; border-left: 1px solid #333; }
-.dpad-cross .d-down { border-radius: 2px 2px 6px 6px; border-top: 1px solid #333; }
-.dpad-cross .d-center { background: #1a1a1a; border: 1px solid #222; cursor: default; }
-
-/* System Controls (Center) */
-.center-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
+.dpad-cross .d-up { border-radius: 6px 6px 2px 2px; border-bottom: 1px solid #21262d; }
+.dpad-cross .d-left { border-radius: 6px 2px 2px 6px; border-right: 1px solid #21262d; }
+.dpad-cross .d-right { border-radius: 2px 6px 6px 2px; border-left: 1px solid #21262d; }
+.dpad-cross .d-down { border-radius: 2px 2px 6px 6px; border-top: 1px solid #21262d; }
+.dpad-cross .d-center { background: #0d1117; border: 1px solid #161b22; cursor: default; }
+.center-controls { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .controller-shoulders { display: flex; gap: 12px; width: 100%; justify-content: center; }
 .controller-shoulders .key { min-width: 80px; height: 34px; border-radius: 6px; }
 .controller-menu-btns { display: flex; gap: 16px; margin-top: 10px; }
-.controller-menu-btns .key { 
-  min-width: 75px; height: 28px; border-radius: 14px; 
-  font-size: 8px; font-weight: bold;
-}
-
-/* Classic Angled Action Buttons */
+.controller-menu-btns .key { min-width: 75px; height: 28px; border-radius: 14px; font-size: 8px; font-weight: bold; }
 .action-container { display: flex; justify-content: center; }
-.action-diamond { 
-  display: grid; 
-  grid-template-columns: 46px 46px; 
-  grid-template-rows: 46px 46px; 
-  gap: 12px;
-  transform: rotate(-15deg);
+.action-diamond {
+  display: grid; grid-template-columns: 46px 46px; grid-template-rows: 46px 46px;
+  gap: 12px; transform: rotate(-15deg);
 }
-.action-diamond .key { 
-  min-width: 46px; height: 46px; 
-  border-radius: 50%; 
-  font-weight: bold;
-  transform: rotate(15deg);
-}
-
-/* Arcade Controls Panel Deck */
+.action-diamond .key { min-width: 46px; height: 46px; border-radius: 50%; font-weight: bold; transform: rotate(15deg); }
 .arcade-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  border-left: 1px solid #222;
-  padding-left: 16px;
-  height: 100%;
-  justify-content: center;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  border-left: 1px solid #21262d; padding-left: 16px; height: 100%; justify-content: center;
 }
-.spinner-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
+.spinner-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .spinner-wheel {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #222;
-  border: 2px solid #f0a500;
-  position: relative;
-  cursor: ew-resize;
-  box-shadow: 0 0 8px rgba(240, 165, 0, 0.15);
-  touch-action: none;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: #161b22; border: 2px solid #d29922; position: relative;
+  cursor: ew-resize; touch-action: none;
 }
 .spinner-notch {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #f0a500;
-  top: 8px;
-  left: calc(50% - 3px);
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  background: #d29922; top: 8px; left: calc(50% - 3px);
 }
-.mode-btn.turbo-on {
-  background: #331f0d;
-  border-color: #7a4d1e;
-  color: #ff9800;
-  box-shadow: 0 0 6px rgba(255, 152, 0, 0.2);
-}
+.mode-btn.turbo-on { background: #1a1208; border-color: #7a5a1e; color: #d29922; }
 
-/* Log */
-.log-wrap { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 3px; overflow: hidden; }
-.log-hdr { padding: 5px 12px; border-bottom: 1px solid #141414; font-size: 9px; color: #333; letter-spacing: 2px; }
+/* ── Background mode button ── */
+#bgToggleBtn:hover { background: #1c2128 !important; border-color: #484f58 !important; color: #e6edf3 !important; }
+#bgToggleBtn:active { transform: translateY(1px); }
+#bgToggleBtn.active-mode { background: #0d1f0d !important; border-color: #238636 !important; color: #3fb950 !important; }
+
+/* ── Log ── */
+.log-wrap { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; overflow: hidden; }
+.log-hdr { padding: 5px 12px; border-bottom: 1px solid #161b22; font-size: 9px; color: #30363d; letter-spacing: 2px; display: flex; align-items: center; gap: 6px; }
+.log-hdr::before { content: '●'; color: #238636; font-size: 8px; }
 .log-body { height: 80px; overflow-y: auto; padding: 4px 12px; }
 .log-body::-webkit-scrollbar { width: 3px; }
-.log-body::-webkit-scrollbar-thumb { background: #222; }
+.log-body::-webkit-scrollbar-thumb { background: #21262d; }
 .le { font-size: 11px; line-height: 18px; }
-.li { color: #333; } .ls { color: #4caf50; } .lerr { color: #f44; }
-.lw { color: #f0a500; } .lk { color: #81c784; } .lm { color: #64b5f6; }
+.li { color: #30363d; } .ls { color: #3fb950; } .lerr { color: #f85149; }
+.lw { color: #d29922; } .lk { color: #58a6ff; } .lm { color: #79c0ff; }
 </style>
 </head>
 <body>
@@ -307,6 +227,7 @@ input.port { width: 65px; }
   <div class="dot" id="dot"></div>
   <span class="title">MiSTer Keyboard</span>
   <span class="subtitle">kd · uinput</span>
+  <button class="btn btn-quit" onclick="doQuit()">✕ QUIT</button>
 </div>
 <div class="divider"></div>
 
@@ -315,6 +236,16 @@ input.port { width: 65px; }
   <div class="fl"><label>PASSWORD</label><input class="pw" id="pw" value="1" type="password"></div>
   <div class="fl"><label>WS PORT</label><input class="port" id="wsport" value="4568"></div>
   <button class="btn btn-connect" id="connBtn" onclick="toggleConnect()">Connect</button>
+</div>
+
+<div class="section-label">RELAY</div>
+<div class="conn-bar" style="margin-bottom: 20px;">
+  <button class="btn" id="bgToggleBtn" style="background: #1a1a1a; border-color: #333; color: #aaa;">
+    Go Background Mode (Ctrl+Alt+Shift+M)
+  </button>
+  <div class="fl" style="justify-content: center; height: 30px;">
+    <span id="bgReminderStatus" style="font-size: 11px; color: #444; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">LOCAL CONTROL ACTIVE</span>
+  </div>
 </div>
 
 <div class="section-label">SHORTCUTS</div>
@@ -332,12 +263,12 @@ input.port { width: 65px; }
   <button class="combo-btn" id="cb-10" disabled onclick="sendCombo('{db:58}db')"><span class="combo-key">Win+F12</span><span class="combo-desc">MiSTer OSD</span></button>
 </div>
 
-<div class="section-label">MOUSE — click and drag like a joystick; further from center = faster</div>
+<div class="section-label">MOUSE — drag to move · speed increases with distance from center</div>
 <div class="mouse-section">
   <div class="mouse-controls-row">
     <div class="mouse-pad" id="mousePad">
-      <div class="mouse-pad-label" id="mouseLabel">Click and drag here</div>
-      <div class="mouse-pad-hint" id="mouseHint">Cursor stays put — only the offset matters</div>
+      <div class="mouse-pad-label" id="mouseLabel">drag to move mouse</div>
+      <div class="mouse-pad-hint" id="mouseHint">hold and drag in any direction</div>
       <div class="mouse-stick" id="mouseStick"></div>
     </div>
     <div class="mouse-side">
@@ -352,13 +283,13 @@ input.port { width: 65px; }
       </div>
       <div class="sensitivity-block">
         <span>SENSITIVITY</span>
-        <input type="range" id="sensSlider" min="1" max="40" value="12">
+        <input type="range" id="sensSlider" min="1" max="40" value="33">
       </div>
     </div>
   </div>
 </div>
 
-<div class="section-label">KEYBOARD — or type with physical keys while app is focused</div>
+<div class="section-label">KEYBOARD — click a key first, then type freely</div>
 <div class="keyboard-wrap" id="keyboard">
 
   <div class="kb-main">
@@ -561,8 +492,8 @@ input.port { width: 65px; }
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
         <button class="mode-btn" id="gp-turbo-btn" onclick="toggleTurboMode()" style="width: 100%; text-align: center; font-size: 8px; font-weight: bold;">TURBO: OFF</button>
-        <div class="key gp-coin" data-seq="5" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)" style="min-width: unset; height: 30px; border-radius: 6px; border-color: #422; color: #ff6b6b;"><span class="label">COIN</span></div>
-        <div class="key gp-service" data-seq="7" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)" style="min-width: unset; height: 30px; border-radius: 6px; border-color: #224; color: #6b8bff;"><span class="label">SERVICE</span></div>
+        <div class="key gp-coin" data-seq="5" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)" style="min-width: unset; width: 100%; height: 30px; border-radius: 6px; border-color: #422; color: #ff6b6b; align-items: center; justify-content: center; text-align: center;"><span class="label">COIN</span><span style="font-size:7px;color:#633;letter-spacing:0.5px">5</span></div>
+        <div class="key gp-service" data-seq="7" onmousedown="fireScreenKeyHold(event, this)" onmouseup="fireScreenKeyRelease(this)" onmouseleave="fireScreenKeyRelease(this)" style="min-width: unset; width: 100%; height: 30px; border-radius: 6px; border-color: #224; color: #6b8bff; align-items: center; justify-content: center; text-align: center;"><span class="label">SERVICE</span><span style="font-size:7px;color:#336;letter-spacing:0.5px">7</span></div>
       </div>
     </div>
 
@@ -756,7 +687,22 @@ function doConnect(){
     currentScreenHoldEl = null;
   };
 }
-function doDisconnect(){ if(ws)ws.close(); log('Disconnected','li'); }
+function doDisconnect(){
+  if(ws && ws.readyState===WebSocket.OPEN){
+    ws.send(JSON.stringify({type:'disconnect'}));
+    setTimeout(()=>{ if(ws) ws.close(); }, 100);
+  } else if(ws) {
+    ws.close();
+  }
+  log('Disconnected','li');
+}
+
+function doQuit(){
+  if(ws && ws.readyState===WebSocket.OPEN){
+    ws.send(JSON.stringify({type:'quit'}));
+  }
+  setTimeout(()=>window.close(), 500);
+}
 
 function sendRaw(seq){
   if(ws&&ws.readyState===WebSocket.OPEN)
@@ -1152,28 +1098,91 @@ document.addEventListener('wheel', (e) => {
 setEnabled(false);
 setGamepadMode('pc');
 
-    // ─── AUTO-SAVE & RESTORE MISTER IP ───
-    document.addEventListener('DOMContentLoaded', () => {
-        const ipInput = document.getElementById('ip');
-        const pwInput = document.getElementById('pw');
-        const portInput = document.getElementById('wsport');
+    // ─── AUTO-SAVE & RESTORE SETTINGS ───
+    // Run after init so restored values aren't overwritten
+    (function restoreSettings() {
+        const ipInput    = document.getElementById('ip');
+        const pwInput    = document.getElementById('pw');
+        const portInput  = document.getElementById('wsport');
+        const sensSlider = document.getElementById('sensSlider');
 
-        // 1. Restore saved values from previous sessions if they exist
-        if (localStorage.getItem('mister_saved_ip')) {
-            ipInput.value = localStorage.getItem('mister_saved_ip');
-        }
-        if (localStorage.getItem('mister_saved_pw')) {
-            pwInput.value = localStorage.getItem('mister_saved_pw');
-        }
-        if (localStorage.getItem('mister_saved_port')) {
-            portInput.value = localStorage.getItem('mister_saved_port');
-        }
+        if (localStorage.getItem('mister_saved_ip'))   ipInput.value    = localStorage.getItem('mister_saved_ip');
+        if (localStorage.getItem('mister_saved_pw'))   pwInput.value    = localStorage.getItem('mister_saved_pw');
+        if (localStorage.getItem('mister_saved_port')) portInput.value  = localStorage.getItem('mister_saved_port');
+        if (localStorage.getItem('mister_saved_sens')) sensSlider.value = localStorage.getItem('mister_saved_sens');
 
-        // 2. Listen for live changes and save them instantly to app memory
-        if (ipInput) ipInput.addEventListener('input', () => localStorage.setItem('mister_saved_ip', ipInput.value));
-        if (pwInput) pwInput.addEventListener('input', () => localStorage.setItem('mister_saved_pw', pwInput.value));
-        if (portInput) portInput.addEventListener('input', () => localStorage.setItem('mister_saved_port', portInput.value));
+        ipInput.addEventListener('input',    () => localStorage.setItem('mister_saved_ip',   ipInput.value));
+        pwInput.addEventListener('input',    () => localStorage.setItem('mister_saved_pw',   pwInput.value));
+        portInput.addEventListener('input',  () => localStorage.setItem('mister_saved_port', portInput.value));
+        sensSlider.addEventListener('input', () => localStorage.setItem('mister_saved_sens', sensSlider.value));
+    })();
+
+// ─── BACKGROUND MODE — connects to app.py backend on port 8001 ───
+(function() {
+    const bgToggleBtn      = document.getElementById('bgToggleBtn');
+    const bgReminderStatus = document.getElementById('bgReminderStatus');
+
+    let controlWS = null;
+
+    function connectControlWS() {
+        controlWS = new WebSocket('ws://localhost:8001');
+
+        controlWS.addEventListener('open', () => {
+            console.log('Backend controller connected');
+        });
+
+        controlWS.addEventListener('message', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'STATUS') {
+                    // Pre-fill last used IP if field is still default
+                    if (data.last_ip) {
+                        const ipField = document.getElementById('ip');
+                        if (ipField && !connected) ipField.value = data.last_ip;
+                    }
+                    if (data.active) {
+                        bgToggleBtn.classList.add('active-mode');
+                        bgToggleBtn.innerText = 'Bring to Foreground (Ctrl+Alt+Shift+M)';
+                        bgReminderStatus.innerText = 'BACKGROUND RELAY ACTIVE — OSD: Ctrl+Alt+Shift+F';
+                        bgReminderStatus.style.color = '#4caf50';
+                        if (currentScreenHoldEl) fireScreenKeyRelease(currentScreenHoldEl);
+                        clearAllMods();
+                    } else {
+                        bgToggleBtn.classList.remove('active-mode');
+                        bgToggleBtn.innerText = 'Go Background Mode (Ctrl+Alt+Shift+M)';
+                        bgReminderStatus.innerText = 'LOCAL CONTROL ACTIVE';
+                        bgReminderStatus.style.color = '#444';
+                        if (currentScreenHoldEl) fireScreenKeyRelease(currentScreenHoldEl);
+                        clearAllMods();
+                        // Re-enable keyboard/mouse controls when returning from background mode
+                        if (connected) setEnabled(true);
+                    }
+                }
+            } catch(e) { console.error('Failed to parse status packet:', e); }
+        });
+
+        controlWS.addEventListener('close', () => {
+            console.warn('Backend disconnected, retrying in 2s...');
+            setTimeout(connectControlWS, 2000);
+        });
+
+        controlWS.addEventListener('error', () => {
+            console.warn('Backend not reachable on port 8001');
+        });
+    }
+
+    connectControlWS();
+
+    bgToggleBtn.addEventListener('click', () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'toggle_background' }));
+        } else if (controlWS && controlWS.readyState === WebSocket.OPEN) {
+            controlWS.send(JSON.stringify({ type: 'TOGGLE_BACKGROUND_MODE' }));
+        } else {
+            console.warn('Not connected');
+        }
     });
+})();
 </script>
 </body>
 </html>
