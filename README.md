@@ -28,7 +28,7 @@ A desktop app for relaying keyboard, mouse, and gamepad inputs to your MiSTer FP
 │                                      │              │                 │
 │  ┌─────────────────────────────────┐ │              │  ┌───────────┐  │
 │  │   HTML UI (mister-keyboard.html)│ │              │  │ kd daemon │  │
-│  │   WebSocket → ws://127.0.0.1   │ │  TCP :8064   │  │ :8064     │  │
+│  │   WebSocket → ws://127.0.0.1    │ │  TCP :8064   │  │ :8064     │  │
 │  └──────────────┬──────────────────┘ ├─────────────►│  └───────────┘  │
 │                 │                    │              │                 │
 │  ┌──────────────▼──────────────────┐ │              └─────────────────┘
